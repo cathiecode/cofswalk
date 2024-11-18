@@ -32,7 +32,8 @@ mod tests {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DirWalker {
     base_path: OsString,
-    last_path: Vec<OsString>,
+    directory_path: Vec<OsString>,
+    last_file_name: Option<OsString>,
 
     #[serde(skip)]
     current_iterator: Option<std::fs::ReadDir>,
@@ -46,8 +47,9 @@ impl DirWalker {
 
         Ok(Self {
             base_path: path.into(),
-            last_path: vec![OsString::from("."), OsString::from(".")],
+            directory_path: vec![OsString::from("."), OsString::from(".")],
             current_iterator: None,
+            last_file_name: None
         })
     }
 
@@ -61,7 +63,7 @@ impl DirWalker {
 
     fn populate(&mut self) -> Result<()> {
         self.current_iterator =
-            Some(self.read_dir(&self.last_path.iter().collect::<PathBuf>(), None)?);
+            Some(self.read_dir(&self.directory_path.iter().collect::<PathBuf>(), self.last_file_name.as_ref().map(|e| e.as_os_str()))?);
 
         Ok(())
     }
@@ -97,38 +99,30 @@ impl DirWalker {
 
         // FIXME: Hard link
         if let Some(result) = &result {
-            println!("found: {:?}", result);
             let file_type = result.file_type().or(Err(Error::SomethingWentWrong(
                 "b7d7bddc-aab2-4ae9-abfd-e9d5f2d1de92",
             )))?;
 
+            self.last_file_name = Some(result.file_name().to_os_string());
+
             if file_type.is_file() {
-                // OPTIMIZE
-                self.last_path.pop();
-                self.last_path.push(result.file_name());
+                
             } else if file_type.is_dir() {
-                // TODO: push
-                self.last_path.pop();
-                self.last_path.push(result.file_name());
+                self.directory_path.push(result.file_name());
                 self.current_iterator =
-                    Some(self.read_dir(&self.last_path.iter().collect::<PathBuf>(), None)?);
-                self.last_path.push(OsString::from("."));
+                    Some(self.read_dir(&self.directory_path.iter().collect::<PathBuf>(), None)?);
             } else {
                 // Symlink?
             }
         } else {
-            self.last_path.pop(); // last file
-
-            let last_dirname = self.last_path.pop();
+            let last_dirname = self.directory_path.pop();
 
             if let Some(last_dirname) = last_dirname {
                 // unwind
                 self.current_iterator = Some(self.read_dir(
-                    &self.last_path.iter().collect::<PathBuf>(),
+                    &self.directory_path.iter().collect::<PathBuf>(),
                     Some(&last_dirname),
                 )?);
-
-                self.last_path.push(last_dirname);
                 return self.next();
             } else {
                 return Ok(None);

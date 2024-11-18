@@ -24,7 +24,7 @@ fn main() {
             let mut i = 0;
 
             for entry in &mut walker {
-                if i > 10 {
+                if i > 4 {
                     done = false;
                     break;
                 }
