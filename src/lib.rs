@@ -14,19 +14,8 @@ pub enum Error {
 
 type Result<T> = std::result::Result<T, Error>;
 
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
-
 #[cfg(test)]
 mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -71,7 +60,7 @@ impl DirWalker {
     fn read_dir(&self, path: &Path, skip_until: Option<&OsStr>) -> Result<ReadDir> {
         let path = PathBuf::from(&self.base_path).join(PathBuf::from(path));
 
-        let mut read_dir = std::fs::read_dir(path).unwrap(); //.or(Err(Error::SomethingWentWrong("1f5973a9-66c5-4120-9844-ce2352a34257")))?;
+        let mut read_dir = std::fs::read_dir(path).or(Err(Error::SomethingWentWrong("1f5973a9-66c5-4120-9844-ce2352a34257")))?;
 
         if let Some(skip_until) = skip_until {
             for entry in &mut read_dir {
